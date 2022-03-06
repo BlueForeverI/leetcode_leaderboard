@@ -17,7 +17,8 @@ defmodule LeetcodeLeaderboardWeb.Router do
   scope "/", LeetcodeLeaderboardWeb do
     pipe_through :browser
 
-    get "/", PageController, :index
+    # get "/", PageController, :index
+    live "/", Live.Index
   end
 
   # Other scopes may use custom stacks.
