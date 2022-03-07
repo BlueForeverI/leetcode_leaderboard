@@ -16,7 +16,8 @@ defmodule LeetcodeLeaderboard.Service do
           |> Integer.parse()
           |> elem(0)
           |> DateTime.from_unix(:second)
-          |> elem(1)
+          |> elem(1),
+        url: "https://leetcode.com/submissions/detail/#{sub["id"]}"
       }
     end)
   end

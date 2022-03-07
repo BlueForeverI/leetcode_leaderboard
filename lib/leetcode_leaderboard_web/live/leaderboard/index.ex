@@ -20,7 +20,7 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
             <tr>
               <td><%= row[:user] %></td>
               <td><%= Calendar.strftime(row[:date], "%y-%m-%d %H:%M:%S")%></td>
-              <td><%= row[:lang] %></td>
+              <td><a href={row[:url]}><%= row[:lang] %></a></td>
             </tr>
           <% end %>
         </tbody>
