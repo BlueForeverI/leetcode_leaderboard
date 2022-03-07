@@ -71,5 +71,5 @@ defmodule LeetcodeLeaderboard.Service do
 
   defp tasks, do: ["find-common-characters", "best-time-to-buy-and-sell-stock", "permutation-in-string"]
 
-  defp users, do: ["vann4oto98", "isiderov", "georgiyolovski", "Rostech", "petargeorgiev11"]
+  defp users, do: ["vann4oto98", "isiderov", "georgiyolovski", "Rostech", "petargeorgiev11", "transtrike"]
 end
