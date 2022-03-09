@@ -14,7 +14,7 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
             <th>Language</th>
           </tr>
         </thead>
-
+    
         <tbody>
           <%= for row <- @rows do %>
             <tr>
