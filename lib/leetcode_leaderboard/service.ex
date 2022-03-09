@@ -5,42 +5,61 @@ defmodule LeetcodeLeaderboard.Service do
   alias LeetcodeLeaderboard.Repo
   alias LeetcodeLeaderboard.Problem
   alias LeetcodeLeaderboard.User
+  alias LeetcodeLeaderboard.Api
   import Ecto.Query
 
   def leaderboard() do
-    last_problem = problems() |> List.last()
+    problems()
+    |> List.last()
+    |> leaderboard()
+  end
 
+  def leaderboard(problem) do
     users()
-    |> Enum.map(fn user -> first_accepted_submission(user, last_problem) end)
-    |> Enum.filter(fn sub -> sub |> Map.has_key?("timestamp") end)
+    |> Enum.map(fn user -> first_accepted_submission(user, problem) end)
+    |> Enum.filter(&(&1))
     |> Enum.sort(&sort_by_date/2)
-    |> Enum.map(fn sub ->
-      %{
-        lang: sub["lang"],
-        user: sub["user"],
-        date:
-          sub["timestamp"]
-          |> Integer.parse()
-          |> elem(0)
-          |> DateTime.from_unix(:second)
-          |> elem(1),
-        url: "https://leetcode.com/submissions/detail/#{sub["id"]}"
-      }
-    end)
+    |> Enum.map(&transform/1)
   end
 
-  def first_accepted_submission(user, task) do
+  def all_submissions() do
+   problems()
+   |> List.last()
+   |> all_submissions()
+  end
+
+  def all_submissions(problem) do
+    users()
+    |> Enum.map(&Api.user_submissions/1)
+    |> Enum.flat_map(&(&1))
+    |> Enum.filter(fn sub -> submission_for_problem?(sub, problem) end)
+    |> Enum.map(&transform/1)
+  end
+
+  def problems() do
+    from(p in Problem,
+      order_by: [asc: p.start_date]
+    )
+    |> Repo.all()
+  end
+
+  defp first_accepted_submission(user, task) do
     user
-    |> submissions()
-    |> Enum.filter(fn %{"titleSlug" => task_title, "statusDisplay" => status} = sub ->
-      task_title == task.name and status == "Accepted" and
-        submission_between_dates(sub, task.start_date, task.end_date)
+    |> Api.user_submissions()
+    |> Enum.filter(fn %{"statusDisplay" => status} = sub ->
+      status == "Accepted" and submission_for_problem?(sub, task)
     end)
-    |> Enum.min_by(& &1["timestamp"], fn -> %{} end)
-    |> Map.merge(%{"user" => user.username})
+    |> first_submission()
   end
 
-  def submission_between_dates(submission, start_date, end_date) do
+  defp first_submission([]), do: nil
+
+  defp first_submission(subs) do
+    subs
+    |> Enum.min_by(& &1["timestamp"], fn -> %{} end)
+  end
+
+  defp submission_for_problem?(submission, %{start_date: start_date, end_date: end_date, name: name}) do
     before_week_start = start_date |> Date.add(-1)
     after_week_end = end_date |> Date.add(1)
 
@@ -53,42 +72,27 @@ defmodule LeetcodeLeaderboard.Service do
       |> DateTime.to_date()
 
     submission_date |> Date.compare(before_week_start) == :gt and
-      submission_date |> Date.compare(after_week_end) == :lt
+      submission_date |> Date.compare(after_week_end) == :lt and
+      submission["titleSlug"] == name
   end
 
-  def sort_by_date(first, second) do
+  defp sort_by_date(first, second) do
     first["timestamp"] < second["timestamp"]
   end
 
-  def submissions(user) do
-    Neuron.Config.set(url: "https://leetcode.com/graphql")
-
-    {:ok, %{body: %{"data" => %{"recentSubmissionList" => submissions}}}} =
-      Neuron.query(
-        """
-        query getRecentSubmissionList($username: String!, $limit: Int) {
-          recentSubmissionList(username: $username, limit: $limit) {
-            id
-            title
-            titleSlug
-            timestamp
-            statusDisplay
-            lang
-            __typename
-          }
-        }
-        """,
-        %{username: user.username}
-      )
-
-    submissions
-  end
-
-  defp problems() do
-    from(p in Problem,
-      order_by: [asc: p.start_date]
-    )
-    |> Repo.all()
+  defp transform(sub) do
+    %{
+      lang: sub["lang"],
+      user: sub["user"],
+      date:
+        sub["timestamp"]
+        |> Integer.parse()
+        |> elem(0)
+        |> DateTime.from_unix(:second)
+        |> elem(1),
+      url: "https://leetcode.com/submissions/detail/#{sub["id"]}",
+      status: sub["statusDisplay"]
+    }
   end
 
   defp users() do
