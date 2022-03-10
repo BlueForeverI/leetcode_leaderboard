@@ -11,27 +11,32 @@ defmodule LeetcodeLeaderboard.Service do
   def leaderboard() do
     problems()
     |> List.last()
+    |> Map.get(:id)
     |> leaderboard()
   end
 
-  def leaderboard(problem) do
+  def leaderboard(problem_id) do
+    problem = Repo.get(Problem, problem_id)
+
     users()
     |> Enum.map(fn user -> first_accepted_submission(user, problem) end)
-    |> Enum.filter(&(&1))
+    |> Enum.filter(& &1)
     |> Enum.sort(&sort_by_date/2)
     |> Enum.map(&transform/1)
   end
 
   def all_submissions() do
-   problems()
-   |> List.last()
-   |> all_submissions()
+    problems()
+    |> List.last()
+    |> all_submissions()
   end
 
-  def all_submissions(problem) do
+  def all_submissions(problem_id) do
+    problem = Repo.get(Problem, problem_id)
+
     users()
     |> Enum.map(&Api.user_submissions/1)
-    |> Enum.flat_map(&(&1))
+    |> Enum.flat_map(& &1)
     |> Enum.filter(fn sub -> submission_for_problem?(sub, problem) end)
     |> Enum.map(&transform/1)
   end
@@ -59,7 +64,11 @@ defmodule LeetcodeLeaderboard.Service do
     |> Enum.min_by(& &1["timestamp"], fn -> %{} end)
   end
 
-  defp submission_for_problem?(submission, %{start_date: start_date, end_date: end_date, name: name}) do
+  defp submission_for_problem?(submission, %{
+         start_date: start_date,
+         end_date: end_date,
+         name: name
+       }) do
     before_week_start = start_date |> Date.add(-1)
     after_week_end = end_date |> Date.add(1)
 
