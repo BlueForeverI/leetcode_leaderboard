@@ -7,7 +7,6 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
   def render(assigns) do
     ~H"""
     <div class="leaderboard">
-      <h1>Leaderboard</h1>
       <div class="board-filters">
         <.form let={f} for={@problem} phx_change="update">
           <%= label f, :id, "Problem" %>
