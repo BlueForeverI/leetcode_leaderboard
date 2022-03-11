@@ -8,29 +8,41 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
     ~H"""
     <div class="leaderboard">
       <h1>Leaderboard</h1>
-      <.form let={f} for={@problem} phx_change="update">
-        <%= label f, :id, "Problem" %>
-        <%= select f, :id, Enum.map(@problems, &({&1.title, &1.id})) %>
-      </.form>
+      <div class="board-filters">
+        <.form let={f} for={@problem} phx_change="update">
+          <%= label f, :id, "Problem" %>
+          <%= select f, :id, Enum.map(@problems, &({&1.title, &1.id})) %>
+        </.form>
+
+        <div class="buttons-panel">
+          <div>
+            <button phx-click="update" phx-value-all_submissions="false"
+              class={"button-container " <> (not @all_submissions && "active" || "")}>Leaderboard</button>
+          </div>
+          <div>
+            <div>
+              <button phx-click="update" phx-value-all_submissions="true"
+                class={"button-container " <> (@all_submissions && "active" || "")}>All Submissions</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <%= if @loading do %>
         <div>Loading...</div>
       <% end %>
 
-      <!-- <%= form_for :filter, "#", [phx_change: "update"], fn f -> %>
-        <%= radio_button f, :all_submissions, false %>
-        <%= label f, :all_submissions_false, "Leaderboard" %>
-
-        <%= radio_button f, :all_submissions, true %>
-        <%= label f, :all_submissions_true, "All Submissions" %>
-      <% end %> -->
       <%= unless @loading do %>
         <table>
           <thead>
             <tr>
               <th>User</th>
               <th>Date</th>
+              <%= if @all_submissions do %>
+                <th>Status</th>
+              <% end %>
               <th>Language</th>
+              <th>View</th>
             </tr>
           </thead>
 
@@ -39,7 +51,11 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
               <tr>
                 <td><%= row[:user] %></td>
                 <td><%= Calendar.strftime(row[:date], "%y-%m-%d %H:%M:%S")%></td>
-                <td><a href={row[:url]}><%= row[:lang] %></a></td>
+                <%= if @all_submissions do %>
+                  <td><%= row[:status] %></td>
+                <% end %>
+                <td><%= row[:lang] %></td>
+                <td><a href={row[:url]} target="_blank">View code</a></td>
               </tr>
             <% end %>
           </tbody>
@@ -62,6 +78,7 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
       |> assign(:problems, problems)
       |> assign(:problem, problems |> List.last() |> Problem.changeset(%{}))
       |> assign(:loading, true)
+      |> assign(:all_submissions, false)
     }
   end
 
@@ -71,18 +88,9 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
     {:noreply, assign(socket, :loading, true)}
   end
 
-  def handle_event("update", %{"filter" => %{"all_submissions" => "true"} = filter}, socket) do
-    problem_id = socket.assigns.problem.data.id
-    rows = Service.all_submissions(problem_id)
-
-    {:noreply, assign(socket, :rows, rows) |> assign(:filter, filter)}
-  end
-
-  def handle_event("update", %{"filter" => %{"all_submissions" => "false"} = filter}, socket) do
-    problem_id = socket.assigns.problem.data.id
-    rows = Service.leaderboard(problem_id)
-
-    {:noreply, assign(socket, :rows, rows) |> assign(:filter, filter)}
+  def handle_event("update", %{"all_submissions" => all_submissions}, socket) do
+    send(self(), {:change_mode, all_submissions})
+    {:noreply, assign(socket, :loading, true)}
   end
 
   @impl true
@@ -103,5 +111,18 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
      |> assign(:loading, true)
      |> assign(:rows, Service.leaderboard(problem_id))
      |> assign(:loading, false)}
+  end
+
+  def handle_info({:change_mode, all_submissions}, socket) do
+    problem_id = socket.assigns.problem.data.id
+
+    {
+      :noreply,
+      socket
+      |> assign(:loading, true)
+      |> assign(:rows, all_submissions == "true" && Service.all_submissions(problem_id) || Service.leaderboard(problem_id))
+      |> assign(:loading, false)
+      |> assign(:all_submissions, all_submissions == "true")
+    }
   end
 end

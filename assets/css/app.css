@@ -100,12 +100,33 @@
 }
 
 .leaderboard {
-  width: 800px;
+  width: 900px;
   margin: auto;
 }
 
 .leaderboard h1 {
   text-align: center;
+}
+
+.board-filters {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.buttons-panel {
+  display: flex;
+  align-items: center;
+}
+
+.buttons-panel button {
+  margin: 0 5px;
+}
+
+.buttons-panel button.active, .buttons-panel button:hover {
+  background-color: #a94442;
+  border-color: #a94442;
 }
 
 @keyframes fade-in-scale-keys {
