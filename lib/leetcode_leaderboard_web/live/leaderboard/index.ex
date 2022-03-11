@@ -50,7 +50,7 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
             <%= for row <- @rows do %>
               <tr>
                 <td><%= row[:user] %></td>
-                <td><%= Calendar.strftime(row[:date], "%y-%m-%d %H:%M:%S")%></td>
+                <td><%= Calendar.strftime(row[:date], "%Y-%m-%d %H:%M:%S")%></td>
                 <%= if @all_submissions do %>
                   <td><%= row[:status] %></td>
                 <% end %>
@@ -83,8 +83,8 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
   end
 
   @impl true
-  def handle_event("update", %{"problem" => %{"id" => problem_id}}, socket) do
-    send(self(), {:change_problem, problem_id})
+  def handle_event("update", %{"problem" => %{"id" => problem}}, socket) do
+    send(self(), {:change_problem, problem})
     {:noreply, assign(socket, :loading, true)}
   end
 
@@ -105,12 +105,19 @@ defmodule LeetcodeLeaderboardWeb.Live.Index do
     }
   end
 
-  def handle_info({:change_problem, problem_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(:loading, true)
-     |> assign(:rows, Service.leaderboard(problem_id))
-     |> assign(:loading, false)}
+  def handle_info({:change_problem, problem}, socket) do
+    {problem_id, _} = Integer.parse(problem)
+    new_problem = socket.assigns.problems |> Enum.find(fn p -> p.id == problem_id end)
+
+    {
+      :noreply,
+      socket
+      |> assign(:loading, true)
+      |> assign(:rows, Service.leaderboard(problem_id))
+      |> assign(:loading, false)
+      |> assign(:all_submissions, false)
+      |> assign(:problem, new_problem |> Problem.changeset(%{}))
+    }
   end
 
   def handle_info({:change_mode, all_submissions}, socket) do
