@@ -28,6 +28,7 @@ defmodule LeetcodeLeaderboard.Service do
   def all_submissions() do
     problems()
     |> List.last()
+    |> Map.get(:id)
     |> all_submissions()
   end
 
@@ -39,6 +40,7 @@ defmodule LeetcodeLeaderboard.Service do
     |> Enum.flat_map(& &1)
     |> Enum.filter(fn sub -> submission_for_problem?(sub, problem) end)
     |> Enum.map(&transform/1)
+    |> Enum.sort_by(&(&1[:date]), {:desc, Date})
   end
 
   def problems() do
