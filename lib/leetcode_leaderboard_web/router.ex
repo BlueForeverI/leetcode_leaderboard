@@ -1,5 +1,6 @@
 defmodule LeetcodeLeaderboardWeb.Router do
   use LeetcodeLeaderboardWeb, :router
+  use Kaffy.Routes, scope: "/admin"
 
   pipeline :browser do
     plug :accepts, ["html"]
