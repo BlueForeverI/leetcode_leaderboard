@@ -19,7 +19,8 @@ defmodule LeetcodeLeaderboard.Service do
     problem = Repo.get(Problem, problem_id)
 
     users()
-    |> Enum.map(fn user -> first_accepted_submission(user, problem) end)
+    |> Task.async_stream(fn user -> first_accepted_submission(user, problem) end, timeout: 10_000)
+    |> Enum.map(fn {:ok, sub} -> sub end)
     |> Enum.filter(& &1)
     |> Enum.sort(&sort_by_date/2)
     |> Enum.map(&transform/1)
@@ -36,7 +37,8 @@ defmodule LeetcodeLeaderboard.Service do
     problem = Repo.get(Problem, problem_id)
 
     users()
-    |> Enum.map(&Api.user_submissions/1)
+    |> Task.async_stream(&Api.user_submissions/1, timeout: 10_000)
+    |> Enum.map(fn {:ok, data} -> data end)
     |> Enum.flat_map(& &1)
     |> Enum.filter(fn sub -> submission_for_problem?(sub, problem) end)
     |> Enum.map(&transform/1)
